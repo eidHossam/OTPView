@@ -11,7 +11,9 @@ import android.os.Vibrator
 import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
+import android.text.Spanned
 import android.text.TextWatcher
+
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.KeyEvent
@@ -55,7 +57,8 @@ class OtpView @JvmOverloads constructor(
     private var textStyle: String? = null
     private var otp: String = ""
     private var hintTextColor: Int = Color.GRAY
-
+    private var isAllCaps: Boolean = false
+    private var alphanumeric: Boolean = false
     private var completionListener: OTPCompletionHandler? = null
 
     private val paint = Paint().apply {
@@ -107,6 +110,8 @@ class OtpView @JvmOverloads constructor(
                 maxCountPerLine = getInt(R.styleable.OtpView_maxCountPerLine, 4).let {
                     if (it < 1) 4 else it
                 }
+                isAllCaps = getBoolean(R.styleable.OtpView_isAllCaps, false)
+                alphanumeric = getBoolean(R.styleable.OtpView_alphanumeric, false)
             } finally {
                 recycle()
             }
@@ -161,7 +166,17 @@ class OtpView @JvmOverloads constructor(
                         )
                     )
                     hint = this@OtpView.hint
-                    filters = arrayOf(InputFilter.LengthFilter(1))
+
+                    val filtersList = mutableListOf<InputFilter>(InputFilter.LengthFilter(1))
+                    if (this@OtpView.isAllCaps) {
+                        filtersList.add(InputFilter.AllCaps())
+                    }
+
+                    if(this@OtpView.alphanumeric && this@OtpView.inputType == InputType.TYPE_CLASS_TEXT){
+                        filtersList.add(AlphanumericFilter())
+                    }
+                    filters = filtersList.toTypedArray()
+
                     addTextChangedListener(GenericTextWatcher(this, i))
                 }
                 rowLinearLayout?.addView(editText)
@@ -197,11 +212,22 @@ class OtpView @JvmOverloads constructor(
                             resolveTextStyle()
                         )
                     )
+
                     textSize = this@OtpView.textSize
                     setHintTextColor(hintTextColor)
                     setTextColor(textColor)
                     hint = this@OtpView.hint
-                    filters = arrayOf(InputFilter.LengthFilter(1))
+
+                    val filtersList = mutableListOf<InputFilter>(InputFilter.LengthFilter(1))
+                    if (this@OtpView.isAllCaps) {
+                        filtersList.add(InputFilter.AllCaps())
+                    }
+
+                    if(this@OtpView.alphanumeric && this@OtpView.inputType == InputType.TYPE_CLASS_TEXT){
+                        filtersList.add(AlphanumericFilter())
+                    }
+                    filters = filtersList.toTypedArray()
+
                     addTextChangedListener(GenericTextWatcher(this, i))
                 }
                 currentRow?.addView(editText)
@@ -644,5 +670,21 @@ class OtpView @JvmOverloads constructor(
 
     enum class Shape {
         RECTANGLE, CIRCLE
+    }
+
+    class AlphanumericFilter : InputFilter {
+        override fun filter(
+            source: CharSequence,
+            start: Int,
+            end: Int,
+            dest: Spanned,
+            dstart: Int,
+            dend: Int
+        ): CharSequence? {
+            for (i in start until end) {
+                if (!source[i].isLetterOrDigit()) return ""
+            }
+            return null
+        }
     }
 }

@@ -23,5 +23,7 @@
         <attr name="fontFamily" format="string" />
         <attr name="textStyle" format="string"/>
         <attr name="hintTextColor" format="color"/>
+        <attr name="isAllCaps" format="boolean"/>
+        <attr name="alphanumeric" format="boolean"/>
     </declare-styleable>
 </resources>
