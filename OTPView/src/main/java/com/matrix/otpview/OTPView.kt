@@ -6,6 +6,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
+import android.os.Parcel
+import android.os.Parcelable
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.text.Editable
@@ -668,6 +670,69 @@ class OtpView @JvmOverloads constructor(
 
     }
 
+    override fun onSaveInstanceState(): Parcelable {
+        val superState = super.onSaveInstanceState()
+        return SavedState(superState).also {
+            it.otp = getOtpFromFields()
+        }
+    }
+
+    override fun onRestoreInstanceState(state: Parcelable?) {
+        if (state !is SavedState) {
+            super.onRestoreInstanceState(state)
+            return
+        }
+
+        super.onRestoreInstanceState(state.superState)
+
+        post {
+            setOtp(state.otp)
+        }
+    }
+
+    fun getOtpFromFields(): String {
+        val otpBuilder = StringBuilder()
+        var collected = 0
+
+        for (i in 0 until childCount) {
+            val row = getChildAt(i)
+            if (row is LinearLayout) {
+                for (j in 0 until row.childCount) {
+                    val editText = row.getChildAt(j) as? EditText ?: continue
+                    otpBuilder.append(editText.text?.toString().orEmpty())
+                    collected++
+                    if (collected == squareCount) {
+                        return otpBuilder.toString()
+                    }
+                }
+            }
+        }
+        return otpBuilder.toString()
+    }
+
+    fun setOtp(value: String) {
+        otp = value
+
+        var index = 0
+
+        for (i in 0 until childCount) {
+            val row = getChildAt(i)
+            if (row is LinearLayout) {
+                for (j in 0 until row.childCount) {
+                    val editText = row.getChildAt(j) as? EditText ?: continue
+                    val char = value.getOrNull(index)?.toString().orEmpty()
+                    editText.setText(char)
+                    if (char.isNotEmpty()) {
+                        editText.setSelection(char.length)
+                    }
+                    index++
+                }
+            }
+        }
+
+
+    }
+
     enum class Shape {
         RECTANGLE, CIRCLE
     }
@@ -687,4 +752,25 @@ class OtpView @JvmOverloads constructor(
             return null
         }
     }
+
+    internal class SavedState : BaseSavedState {
+        var otp: String = ""
+
+        constructor(superState: Parcelable?) : super(superState)
+
+        private constructor(`in`: Parcel) : super(`in`) {
+            otp = `in`.readString().orEmpty()
+        }
+
+        override fun writeToParcel(out: Parcel, flags: Int) {
+            super.writeToParcel(out, flags)
+            out.writeString(otp)
+        }
+
+        companion object CREATOR : Parcelable.Creator<SavedState> {
+            override fun createFromParcel(parcel: Parcel) = SavedState(parcel)
+            override fun newArray(size: Int) = arrayOfNulls<SavedState>(size)
+        }
+    }
+
 }
